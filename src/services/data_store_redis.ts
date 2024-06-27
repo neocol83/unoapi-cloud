@@ -129,7 +129,7 @@ const dataStoreRedis = async (phone: string, config: Config): Promise<DataStore>
         name: 'unoapi-bulk-report',
         status: 'APPROVED',
         category: 'UTILITY',
-        language: 'pt_BR',
+        language: 'en',
         components: [
           {
             text: `bulk: {{bulk}}`,
@@ -149,7 +149,7 @@ const dataStoreRedis = async (phone: string, config: Config): Promise<DataStore>
         name: 'unoapi-webhook',
         status: 'APPROVED',
         category: 'UTILITY',
-        language: 'pt_BR',
+        language: 'en',
         components: [
           {
             text: `url: {{url}}\nheader: {{header}}\ntoken: {{token}}`,
@@ -178,7 +178,7 @@ const dataStoreRedis = async (phone: string, config: Config): Promise<DataStore>
         name: 'unoapi-config',
         status: 'APPROVED',
         category: 'UTILITY',
-        language: 'pt_BR',
+        language: 'en',
         components: [
           {
             text: '',

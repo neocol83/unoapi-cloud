@@ -22,7 +22,7 @@ x-base: &base
     # STORAGE_FORCE_PATH_STYLE: true
     SECRET_KEY_BASE: ${SECRET_KEY_BASE}
     FRONTEND_URL: https://${DOMAIN}
-    DEFAULT_LOCALE: 'pt_BR'
+    DEFAULT_LOCALE: 'es'
     INSTALLATION_ENV: docker
     NODE_ENV: production
     RAILS_ENV: production

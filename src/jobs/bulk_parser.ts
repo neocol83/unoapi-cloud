@@ -31,7 +31,7 @@ const synthesize = async (phone: string, getConfig: getConfig, text: string) => 
 
   const request: protos.google.cloud.texttospeech.v1.ISynthesizeSpeechRequest = {
     input: { text },
-    voice: { languageCode: 'pt-BR' },
+    voice: { languageCode: 'es-MX' },
     audioConfig: { audioEncoding: 'MP3' },
   }
 

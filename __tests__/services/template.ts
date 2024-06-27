@@ -23,7 +23,7 @@ describe('template', () => {
       name: templateName,
       status: 'APPROVED',
       category: 'UTILITY',
-      language: 'pt_BR',
+      language: 'en',
       components: [
         {
           text: 'url: {{url}}\nheader: {{header}}\ntoken: {{token}}',
