@@ -1,5 +1,5 @@
 {
-  "name": "unoapi-cloud",
+  "name": "unoapi-clouds",
   "version": "1.17.3",
   "description": "Unoapi Cloud",
   "exports": "./dist/index.js",
