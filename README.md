@@ -43,12 +43,12 @@ curl -i -X POST \
 http://localhost:9876/v15.0/5549988290955/messages \
 -H 'Content-Type: application/json' \
 -H 'Authorization: 1' \
--d '{ 
-  "messaging_product": "whatsapp", 
-  "to": "5549988290955", 
-  "type": "text", 
-  "text": { 
-    "body": "hello" 
+-d '{
+  "messaging_product": "whatsapp",
+  "to": "5549988290955",
+  "type": "text",
+  "text": {
+    "body": "hello"
   } 
 }'
 ```
@@ -59,13 +59,13 @@ To send a message to group
 curl -i -X POST \
 http://localhost:9876/v15.0/5549988290955/messages \
 -H 'Content-Type: application/json' \
--d '{ 
-  "messaging_product": "whatsapp", 
-  "to": "120363040468224422@g.us", 
-  "type": "text", 
-  "text": { 
-    "body": "hello" 
-  } 
+-d '{
+  "messaging_product": "whatsapp",
+  "to": "120363040468224422@g.us",
+  "type": "text",
+  "text": {
+    "body": "hello"
+  }
 }'
 ```
 
@@ -95,10 +95,10 @@ To send media
 curl -i -X POST \
 http://localhost:9876/v15.0/5549988290955/messages \
 -H 'Content-Type: application/json' \
--d '{ 
-  "messaging_product": "whatsapp", 
-  "to": "5549988290955", 
-  "type": "image", 
+-d '{
+  "messaging_product": "whatsapp",
+  "to": "5549988290955",
+  "type": "image",
   "image": {
     "link" : "https://github.githubassets.com/favicons/favicon-dark.png"
   }
@@ -509,6 +509,17 @@ To show logs `journalctl -u unoapi.service -f`
 
 ## Caution with whatsapp web connection
 More then 14 days without open app in smartphone, the connection with whatsapp web is invalidated and need to read a new qrcode.
+
+## Future providers
+### Current lib is baileys, to other libraries implement subscribe:
+- incoming and convert whatsapp cloud api format to lib format
+- disconnect to remove conection
+- reload do close socket and reopen
+### to send messages:
+- write in rabbitmq queue outgoing in format
+
+https://github.com/NaikAayush/whatsapp-cloud-api
+https://github.com/green-api/whatsapp-api-client-golang
 
 ## Legal
 
