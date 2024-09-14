@@ -4,8 +4,19 @@ import { parsePhoneNumber } from 'awesome-phonenumber'
 import vCard from 'vcf'
 import logger from './logger'
 import { Config } from './config'
+import { MESSAGE_CHECK_WAAPP } from '../defaults'
 
 export const TYPE_MESSAGES_TO_PROCESS_FILE = ['imageMessage', 'videoMessage', 'audioMessage', 'documentMessage', 'stickerMessage']
+
+
+const MESSAGE_STUB_TYPE_ERRORS = [
+  'Message absent from node'.toLowerCase(),
+  'Invalid PreKey ID'.toLowerCase(),
+  'Key used already or never filled'.toLowerCase(),
+  'No SenderKeyRecord found for decryption'.toLowerCase(),
+  'No session record'.toLowerCase(),
+  'No matching sessions found for message'.toLowerCase(),
+]
 
 export class BindTemplateError extends Error {
   constructor() {
@@ -50,6 +61,46 @@ const TYPE_MESSAGES_TO_PROCESS = [
   'messageContextInfo',
   'messageStubType',
 ]
+
+export const getMimetype = (payload: any) => {
+  const { type } = payload
+  const link = payload[type].link
+
+  let mimetype: string | boolean = mime.lookup(link.split('?')[0])
+  if (!mimetype) {
+    let url
+    try {
+      url = new URL(link)
+    } catch (error) {
+      logger.error(`Error on parse url: ${link}`)
+    }
+    if (url) {
+      mimetype = url.searchParams.get('response-content-type')
+      if (!mimetype) {
+        const contentDisposition = url.searchParams.get('response-content-disposition')
+        if (contentDisposition) {
+          const filename = contentDisposition.split('filename=')[1].split(';')[0]
+          if (filename) {
+            mimetype = mime.lookup(filename)
+          }
+        }
+      }
+    }
+  }
+  if (type == 'audio') {
+    if (mimetype == 'audio/ogg') {
+      mimetype = 'audio/ogg; codecs=opus'
+    } else if (!mimetype) {
+      mimetype = 'audio/mpeg'
+    }
+  }
+  if (payload[type].filename) {
+    if (!mimetype) {
+      mimetype = mime.lookup(payload[type].filename)
+    }
+  }
+  return mimetype ? `${mimetype}` : 'application/unknown'
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const getMessageType = (payload: any) => {
@@ -189,39 +240,11 @@ export const toBaileysMessageContent = (payload: any): AnyMessageContent => {
     case 'video':
       const link = payload[type].link
       if (link) {
-        let mimetype: string | boolean | null = mime.lookup(link.split('?')[0])
-        if (!mimetype) {
-          let url
-          try {
-            url = new URL(link)
-          } catch (error) {
-            logger.error(`Error on parse url: ${link}`)
-          }
-          if (url) {
-            mimetype = url.searchParams.get('response-content-type')
-            if (!mimetype) {
-              const contentDisposition = url.searchParams.get('response-content-disposition')
-              if (contentDisposition) {
-                const filename = contentDisposition.split('filename=')[1].split(';')[0]
-                if (filename) {
-                  mimetype = mime.lookup(filename)
-                }
-              }
-            }
-          }
-        }
+        let mimetype: string = getMimetype(payload)
         if (type == 'audio') {
-          if (mimetype == 'audio/ogg') {
-            mimetype = 'audio/ogg; codecs=opus'
-          } else if (!mimetype) {
-            mimetype = 'audio/mpeg'
-          }
           response.ptt = true
         }
         if (payload[type].filename) {
-          if (!mimetype) {
-            mimetype = mime.lookup(payload[type].filename)
-          }
           response.fileName = payload[type].filename
         }
         if (mimetype) {
@@ -537,16 +560,13 @@ export const fromBaileysMessageContent = (phone: string, payload: any, config?: 
         break
 
       case 'messageStubType':
-        const errors = [
-          'Message absent from node',
-          'Invalid PreKey ID',
-          'Key used already or never filled',
-          'No SenderKeyRecord found for decryption',
-          'No session record',
-        ]
-        if (payload.messageStubType == 2 && payload.messageStubParameters && errors.includes(payload.messageStubParameters[0])) {
+        MESSAGE_STUB_TYPE_ERRORS
+        if (payload.messageStubType == 2 && 
+            payload.messageStubParameters &&
+            payload.messageStubParameters[0] &&
+            MESSAGE_STUB_TYPE_ERRORS.includes(payload.messageStubParameters[0].toLowerCase())) {
           message.text = {
-            body: '🕒 Não foi possível ler a mensagem. Peça para enviar novamente ou abra o Whatsapp no celular.',
+            body: MESSAGE_CHECK_WAAPP,
           }
           message.type = 'text'
           change.value.messages.push(message)
