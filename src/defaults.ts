@@ -52,7 +52,7 @@ export const UNOAPI_JOB_CONTACT = `${UNOAPI_QUEUE_NAME}.contact`
 export const UNOAPI_JOB_BULK_PARSER = `${UNOAPI_QUEUE_NAME}.bulk.parser`
 export const UNOAPI_JOB_RELOAD = `${UNOAPI_QUEUE_NAME}.reload`
 export const UNOAPI_JOB_BROADCAST = `${UNOAPI_QUEUE_NAME}.broadcast`
-export const UNOAPI_JOB_DISCONNECT = `${UNOAPI_QUEUE_NAME}.disconnect`
+export const UNOAPI_JOB_LOGOUT = `${UNOAPI_QUEUE_NAME}.logout`
 export const UNOAPI_JOB_BULK_SENDER = `${UNOAPI_QUEUE_NAME}.bulk.sender`
 export const UNOAPI_JOB_BULK_STATUS = `${UNOAPI_QUEUE_NAME}.bulk.status`
 export const UNOAPI_JOB_BULK_REPORT = `${UNOAPI_QUEUE_NAME}.bulk.report`
@@ -64,6 +64,7 @@ export const UNOAPI_MESSAGE_RETRY_LIMIT = parseInt(process.env.MESSAGE_RETRY_LIM
 export const UNOAPI_MESSAGE_RETRY_DELAY = parseInt(process.env.MESSAGE_RETRY_DELAY || '10000')
 export const UNOAPI_DELAY_BETWEEN_MESSAGES_MS = parseInt(process.env.UNOAPI_DELAY_BETWEEN_MESSAGES_MS || '0')
 export const UNOAPI_DELAY_AFTER_FIRST_MESSAGE_MS = parseInt(process.env.UNOAPI_DELAY_AFTER_FIRST_MESSAGE_MS || '0')
+export const UNOAPI_DELAY_AFTER_FIRST_MESSAGE_WEBHOOK_MS = parseInt(process.env.UNOAPI_DELAY_AFTER_FIRST_MESSAGE_WEBHOOK_MS || '0')
 export const UNOAPI_BULK_BATCH = parseInt(process.env.UNOAPI_BULK_BATCH || '5')
 export const UNOAPI_BULK_DELAY = parseInt(process.env.UNOAPI_BULK_DELAY || '60')
 export const UNOAPI_BULK_MESSAGE_DELAY = parseInt(process.env.UNOAPI_BULK_DELAY || '12')
@@ -110,6 +111,7 @@ export const CONFIG_SESSION_PHONE_CLIENT = process.env.CONFIG_SESSION_PHONE_CLIE
 export const CONFIG_SESSION_PHONE_NAME = process.env.CONFIG_SESSION_PHONE_NAME || 'Chrome'
 export const MESSAGE_CHECK_WAAPP = process.env.MESSAGE_CHECK_WAAPP || '🕒 Não foi possível ler a mensagem. Peça para enviar novamente ou abra o Whatsapp no celular.'
 export const WHATSAPP_VERSION = JSON.parse(process.env.WHATSAPP_VERSION || `[${DEFAULT_CONNECTION_CONFIG.version}]`) as WAVersion
+export const WAVOIP_TOKEN = process.env.WAVOIP_TOKEN || ''
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const STORAGE_OPTIONS = (storage: any) => {

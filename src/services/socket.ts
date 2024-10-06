@@ -23,6 +23,7 @@ import logger from './logger'
 import { Level } from 'pino'
 import { SocksProxyAgent } from 'socks-proxy-agent'
 import { HttpsProxyAgent } from 'https-proxy-agent'
+import { useVoiceCallsBaileys } from 'voice-calls-baileys/lib/services/transport.model'
 import { isSessionStatusConnecting, isSessionStatusOnline, setSessionStatus, isSessionStatusOffline, isSessionStatusIsDisconnect } from './session_store'
 import { CONFIG_SESSION_PHONE_CLIENT, CONFIG_SESSION_PHONE_NAME, WHATSAPP_VERSION, LOG_LEVEL } from '../defaults'
 
@@ -69,6 +70,10 @@ export interface exists {
 }
 
 export interface close {
+  (): Promise<void>
+}
+
+export interface logout {
   (): Promise<void>
 }
 
@@ -237,6 +242,7 @@ export const connect = async ({
     logger.info(`${phone} close`)
     try {
       await sock?.ws?.close()
+      sock = undefined
     } catch (error) {}
   }
 
@@ -380,10 +386,13 @@ export const connect = async ({
       dataStore.bind(sock.ev)
       event('creds.update', saveCreds)
       event('connection.update', onConnectionUpdate)
+      if (config.wavoipToken) {
+        useVoiceCallsBaileys(config.wavoipToken, sock, 'close', true)
+      }
     }
   }
 
   await connect()
 
-  return { event, status, send, read, rejectCall, fetchImageUrl, fetchGroupMetadata, exists, close }
+  return { event, status, send, read, rejectCall, fetchImageUrl, fetchGroupMetadata, exists, close, logout }
 }
