@@ -19,7 +19,7 @@ import {
   close,
   OnReconnect,
 } from './socket'
-import { Client, getClient, clients } from './client'
+import { Client, getClient, clients, Contact } from './client'
 import { Config, defaultConfig, getConfig } from './config'
 import { toBaileysMessageContent, phoneNumberToJid, jidToPhoneNumber } from './transformer'
 import { v1 as uuid } from 'uuid'
@@ -583,6 +583,7 @@ export class ClientBaileys implements Client {
       try {
         const profilePictureGroup = await this.fetchImageUrl(key.remoteJid)
         if (profilePictureGroup) {
+          logger.debug(`Retrieved group picture! ${profilePictureGroup}`)
           groupMetadata['profilePicture'] = profilePictureGroup
         }
       } catch (error) {
@@ -595,16 +596,35 @@ export class ClientBaileys implements Client {
       const jid = await this.exists(remoteJid)
       if (jid) {
         try {
+          logger.debug(`Retrieving user picture for %s...`, jid)
           const profilePicture = await this.fetchImageUrl(jid)
-          logger.debug(`Retrieving user picture...`)
           if (profilePicture) {
+            logger.debug('Retrieved user picture %s for %s!', profilePicture, jid)
             message['profilePicture'] = profilePicture
+          } else {
+            logger.debug(`Not found user picture for %s!`, jid)
           }
         } catch (error) {
+          logger.error(error)
           logger.warn(error, 'Ignore error on retrieve user profile picture')
         }
       }
     }
     return message
+  }
+
+  public async contacts(numbers: string[]) {
+    const contacts: Contact[] = []
+    for (let index = 0; index < numbers.length; index++) {
+      const number = numbers[index]
+      const testJid = phoneNumberToJid(number)
+      const realJid = await this.exists(testJid)
+      contacts.push({
+        wa_id: realJid,
+        input: number,
+        status: realJid ? 'valid' : 'invalid'
+      })
+    }
+    return contacts
   }
 }
