@@ -1,5 +1,5 @@
 import { proto, WAMessage, downloadMediaMessage, Contact } from 'baileys'
-import { getBinMessage, toBuffer } from './transformer'
+import { getBinMessage, jidToPhoneNumberIfUser, toBuffer } from './transformer'
 import { UNOAPI_JOB_MEDIA, DATA_TTL, FETCH_TIMEOUT_MS, DATA_PROFILE_TTL } from '../defaults'
 import { mediaStores, MediaStore, getMediaStore } from './media_store'
 import { Response } from 'express'
@@ -35,10 +35,9 @@ export const mediaStoreS3 = (phone: string, config: Config, getDataStore: getDat
   const s3Client = new S3Client(s3Config)
 
   const mediaStore = mediaStoreFile(phone, config, getDataStore)
-  const getMedia = mediaStore.getMedia
-  const getDownloadUrl = mediaStore.getDownloadUrl
+  mediaStore.type = 's3'
 
-  const saveMedia = async (waMessage: WAMessage) => {
+  mediaStore.saveMedia = async (waMessage: WAMessage) => {
     let buffer
     const binMessage = getBinMessage(waMessage)
     const localUrl = binMessage?.message?.url
@@ -50,11 +49,11 @@ export const mediaStoreS3 = (phone: string, config: Config, getDataStore: getDat
       buffer = await downloadMediaMessage(waMessage, 'buffer', {})
     }
     const fileName = mediaStore.getFileName(phone, waMessage)
-    await saveMediaBuffer(fileName, buffer)
+    await mediaStore.saveMediaBuffer(fileName, buffer)
     return waMessage
   }
 
-  const saveMediaBuffer = async (fileName: string, content: Buffer) => {
+  mediaStore.saveMediaBuffer = async (fileName: string, content: Buffer) => {
     logger.debug(`Uploading file ${fileName} to bucket ${bucket}....`)
     const putParams = {
       Bucket: bucket,
@@ -68,7 +67,7 @@ export const mediaStoreS3 = (phone: string, config: Config, getDataStore: getDat
     return true
   }
 
-  const getFileUrl = async (fileName: string, expiresIn = DATA_TTL) => {
+  mediaStore.getFileUrl = async (fileName: string, expiresIn = DATA_TTL) => {
     const getParams = {
       Bucket: bucket,
       Key: fileName,
@@ -78,7 +77,7 @@ export const mediaStoreS3 = (phone: string, config: Config, getDataStore: getDat
     return link
   }
 
-  const removeMedia = async (fileName: string) => {
+  mediaStore.removeMedia = async (fileName: string) => {
     const putParams = {
       Bucket: bucket,
       Key: fileName,
@@ -86,7 +85,7 @@ export const mediaStoreS3 = (phone: string, config: Config, getDataStore: getDat
     await s3Client.send(new DeleteObjectCommand(putParams))
   }
 
-  const downloadMedia = async (res: Response, file: string) => {
+  mediaStore.downloadMedia = async (res: Response, file: string) => {
     const store = await getDataStore(phone, config)
     const mediaId = file.split('.')[0]
     if (mediaId) {
@@ -124,10 +123,11 @@ export const mediaStoreS3 = (phone: string, config: Config, getDataStore: getDat
       }
     }
   }
-  const getProfilePictureUrl = async (_baseUrl: string, phoneNumber: string) => {
+  mediaStore.getProfilePictureUrl = async (_baseUrl: string, jid: string) => {
+    const phoneNumber = jidToPhoneNumberIfUser(jid)
     const fileName = `${phone}/${PROFILE_PICTURE_FOLDER}/${profilePictureFileName(phoneNumber)}`
     try {
-      return getFileUrl(fileName, DATA_PROFILE_TTL)
+      return mediaStore.getFileUrl(fileName, DATA_PROFILE_TTL)
     } catch (error) {
       if (error.name === 'NotFound' || error.code === 'NotFound') {
         return ''
@@ -136,19 +136,21 @@ export const mediaStoreS3 = (phone: string, config: Config, getDataStore: getDat
       }
     }
   }
-  const saveProfilePicture = async (contact: Partial<Contact>) => {
-    const fileName = `${phone}/${PROFILE_PICTURE_FOLDER}/${profilePictureFileName(contact.id)}`
-    if (contact.imgUrl == 'changed') {
-      logger.debug('Removing profile picture s3 %s...', contact.id)
-      await removeMedia(fileName)
+  mediaStore.saveProfilePicture = async (contact: Partial<Contact>) => {
+    const phoneNumber = jidToPhoneNumberIfUser(contact.id)
+    logger.debug('Received profile picture s3 %s with %s...', phoneNumber, contact.imgUrl)
+    const fileName = `${phone}/${PROFILE_PICTURE_FOLDER}/${profilePictureFileName(phoneNumber)}`
+    if (['changed', 'removed'].includes(contact.imgUrl || '')) {
+      logger.debug('Removing profile picture s3 %s...', phoneNumber)
+      await mediaStore.removeMedia(fileName)
     } else if (contact.imgUrl) {
-      logger.debug('Saving profile picture s3 %s...', contact.id)
+      logger.debug('Saving profile picture s3 %s...', phoneNumber)
       const response: FetchResponse = await fetch(contact.imgUrl, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS), method: 'GET'})
       const buffer = toBuffer(await response.arrayBuffer())
-      await saveMediaBuffer(fileName, buffer)
-      logger.debug('Saved profile picture s3 %s!', contact.id)
+      await mediaStore.saveMediaBuffer(fileName, buffer)
+      logger.debug('Saved profile picture s3 %s!', phoneNumber)
     }
   }
 
-  return { saveMedia, removeMedia, downloadMedia, getMedia, getFileName: mediaStore.getFileName, saveMediaBuffer, getFileUrl, getDownloadUrl, getProfilePictureUrl, saveProfilePicture }
+  return mediaStore
 }

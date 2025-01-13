@@ -131,14 +131,16 @@ const dataStoreFile = async (phone: string, config: Config): Promise<DataStore> 
     })
     ev.on('contacts.upsert', async (contacts: Contact[]) => {
       logger.debug('contacts.upsert %s', phone, JSON.stringify(contacts))
+      const { saveProfilePicture } = mediaStore
       await Promise.all(contacts.map(async (c) => {
-          return mediaStore.saveProfilePicture(c)
+          return saveProfilePicture(c)
         })
       )
     })
     ev.on('contacts.update', async (contacts: Partial<Contact>[]) => {
       logger.debug('contacts.update %s => %s', phone, JSON.stringify(contacts))
-      await Promise.all(contacts.map(async (c) => mediaStore.saveProfilePicture(c)))
+      const { saveProfilePicture } = mediaStore
+      await Promise.all(contacts.map(async (c) => saveProfilePicture(c)))
     })
   }
   const loadKey = async (id: string) => {
@@ -149,17 +151,19 @@ const dataStoreFile = async (phone: string, config: Config): Promise<DataStore> 
     return new Promise((resolve) => keys.set(id, key) && resolve())
   }
   dataStore.getImageUrl = async (jid: string) => {
-    logger.debug('Retriving profile picture from s3 %s...', jid)
+    const phoneNumber = jidToPhoneNumber(jid)
+    logger.debug('Retriving profile picture %s...', phoneNumber)
     const { mediaStore } = await config.getStore(phone, config)
     const url = await mediaStore.getProfilePictureUrl(BASE_URL, jid)
-    logger.debug('Retrived profile picture from s3 %s!', url)
+    logger.debug('Retrived profile picture %s!', url)
     return url
   }
   dataStore.setImageUrl = async (jid: string, url: string) => {
-    logger.debug('Saving profile picture from s3 %s...', jid)
+    logger.debug('Saving profile picture %s...', jid)
     const { mediaStore } = await config.getStore(phone, config)
-    mediaStore.saveProfilePicture({ imgUrl: url, id: jid })
-    logger.debug('Saved profile picture from s3 %s!', jid)
+    const { saveProfilePicture } = mediaStore
+    await saveProfilePicture({ imgUrl: url, id: jid })
+    logger.debug('Saved profile picture %s!', jid)
   }
   dataStore.loadImageUrl = async (jid: string, sock: WASocket) => {
     logger.debug('Search profile picture for %s', jid)
@@ -221,6 +225,8 @@ const dataStoreFile = async (phone: string, config: Config): Promise<DataStore> 
             jid = phoneNumberToJid(phone)
             logger.info(`${phone} is the phone connection ${phone} returning ${jid}`)
             return jid
+          } else if ('status@broadcast' == phoneOrJid) {
+            return phoneOrJid
           }
         } catch (error) {
           
