@@ -29,7 +29,6 @@ export const getMediaStoreS3: getMediaStore = (phone: string, config: Config, ge
 export const mediaStoreS3 = (phone: string, config: Config, getDataStore: getDataStore): MediaStore => {
   const PROFILE_PICTURE_FOLDER = 'profile-pictures'
   const profilePictureFileName = (phone) => `${phone}.jpg`
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const s3Config = STORAGE_OPTIONS((config as any).storage)
   const bucket = s3Config.bucket
   const s3Client = new S3Client(s3Config)
@@ -40,16 +39,18 @@ export const mediaStoreS3 = (phone: string, config: Config, getDataStore: getDat
   mediaStore.saveMedia = async (waMessage: WAMessage) => {
     let buffer
     const binMessage = getBinMessage(waMessage)
-    const localUrl = binMessage?.message?.url
-    if (localUrl.indexOf('base64') >= 0) {
-      const parts = localUrl.split(',')
-      const base64 = parts[1]
-      buffer = Buffer.from(base64, 'base64')
-    } else {
-      buffer = await downloadMediaMessage(waMessage, 'buffer', {})
+    const localUrl = binMessage?.message?.url || ''
+    if (localUrl) {
+      if (localUrl.indexOf('base64') >= 0) {
+        const parts = localUrl.split(',')
+        const base64 = parts[1]
+        buffer = Buffer.from(base64, 'base64')
+      } else {
+        buffer = await downloadMediaMessage(waMessage, 'buffer', {})
+      }
+      const fileName = mediaStore.getFileName(phone, waMessage)
+      await mediaStore.saveMediaBuffer(fileName, buffer)
     }
-    const fileName = mediaStore.getFileName(phone, waMessage)
-    await mediaStore.saveMediaBuffer(fileName, buffer)
     return waMessage
   }
 
