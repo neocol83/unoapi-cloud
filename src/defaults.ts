@@ -11,6 +11,8 @@ export const UNOAPI_HEADER_NAME = process.env.UNOAPI_HEADER_NAME || 'Authorizati
 export const LOG_LEVEL = process.env.LOG_LEVEL || (process.env.NODE_ENV == 'development' ? 'debug' : 'error')
 export const UNO_LOG_LEVEL = process.env.UNO_LOG_LEVEL || LOG_LEVEL
 
+export const DEFAULT_LOCALE = process.env.DEFAULT_LOCALE || 'en'
+
 export const VALIDATE_MEDIA_LINK_BEFORE_SEND = 
   process.env.VALIDATE_MEDIA_LINK_BEFORE_SEND == _undefined ? false : process.env.VALIDATE_MEDIA_LINK_BEFORE_SEND == 'true'
 
@@ -40,7 +42,7 @@ export const UNOAPI_RETRY_REQUEST_DELAY_MS = parseInt(process.env.UNOAPI_RETRY_R
 // export const SLEEP_TIME = parseInt(process.env.SLEEP_TIME || '5000')
 // export const MAX_QRCODE_GENERATE = process.env.MAX_QRCODE_GENERATE || 6
 export const DATA_TTL: number = parseInt(process.env.DATA_TTL || `${60 * 60 * 24 * 30}`) // a month
-export const DATA_PROFILE_TTL: number = parseInt(process.env.DATA_TTL || `${60 * 60 * 24 * 3}`) // tree days
+export const DATA_URL_TTL: number = parseInt(process.env.DATA_URL_TTL || `${60 * 60 * 24 * 3}`) // tree days
 export const DATA_JID_TTL: number = parseInt(process.env.DATA_JID_TTL || `${60 * 60 * 24 * 7}`) // a week
 export const SESSION_TTL: number = parseInt(process.env.SESSION_TTL || '-1')
 export const UNOAPI_X_COUNT_RETRIES = process.env.UNOAPI_X_COUNT_RETRIES || 'x-unoapi-count-retries'
@@ -118,7 +120,7 @@ export const CLEAN_CONFIG_ON_DISCONNECT =
 export const VALIDATE_ROUTING_KEY = process.env.VALIDATE_ROUTING_KEY === _undefined ? false : process.env.VALIDATE_ROUTING_KEY == 'true'
 export const CONFIG_SESSION_PHONE_CLIENT = process.env.CONFIG_SESSION_PHONE_CLIENT || 'Unoapi'
 export const CONFIG_SESSION_PHONE_NAME = process.env.CONFIG_SESSION_PHONE_NAME || 'Chrome'
-export const MESSAGE_CHECK_WAAPP = process.env.MESSAGE_CHECK_WAAPP || '🕒 Não foi possível ler a mensagem. Peça para enviar novamente ou abra o Whatsapp no celular.'
+export const MESSAGE_CHECK_WAAPP = process.env.MESSAGE_CHECK_WAAPP || ''
 export const WHATSAPP_VERSION = JSON.parse(process.env.WHATSAPP_VERSION || `[${DEFAULT_CONNECTION_CONFIG.version}]`) as WAVersion
 export const WAVOIP_TOKEN = process.env.WAVOIP_TOKEN || ''
 export const ONLY_HELLO_TEMPLATE: boolean = process.env.ONLY_HELLO_TEMPLATE === _undefined ? false : process.env.ONLY_HELLO_TEMPLATE == 'true'

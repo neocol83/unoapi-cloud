@@ -1,6 +1,6 @@
 import { proto, WAMessage, downloadMediaMessage, Contact } from 'baileys'
 import { getBinMessage, jidToPhoneNumberIfUser, toBuffer } from './transformer'
-import { UNOAPI_JOB_MEDIA, DATA_TTL, FETCH_TIMEOUT_MS, DATA_PROFILE_TTL } from '../defaults'
+import { UNOAPI_JOB_MEDIA, DATA_TTL, FETCH_TIMEOUT_MS, DATA_URL_TTL } from '../defaults'
 import { mediaStores, MediaStore, getMediaStore } from './media_store'
 import { Response } from 'express'
 import { getDataStore } from './data_store'
@@ -68,14 +68,21 @@ export const mediaStoreS3 = (phone: string, config: Config, getDataStore: getDat
     return true
   }
 
-  mediaStore.getFileUrl = async (fileName: string, expiresIn = DATA_TTL) => {
+  mediaStore.getFileUrl = async (fileName: string, expiresIn = DATA_URL_TTL) => {
     const getParams = {
       Bucket: bucket,
       Key: fileName,
     }
     const command = new GetObjectCommand(getParams)
-    const link = await getSignedUrl(s3Client, command, { expiresIn })
-    return link
+    try {
+      const link = await getSignedUrl(s3Client, command, { expiresIn })
+      return link
+    } catch (error) {
+      logger.error(
+        `Error on generate s3 signed url for bucket: ${bucket} file name: ${fileName} expires in: ${expiresIn} -> ${error.message}`
+      )
+      throw error
+    }
   }
 
   mediaStore.removeMedia = async (fileName: string) => {
@@ -128,7 +135,7 @@ export const mediaStoreS3 = (phone: string, config: Config, getDataStore: getDat
     const phoneNumber = jidToPhoneNumberIfUser(jid)
     const fileName = `${phone}/${PROFILE_PICTURE_FOLDER}/${profilePictureFileName(phoneNumber)}`
     try {
-      return mediaStore.getFileUrl(fileName, DATA_PROFILE_TTL)
+      return mediaStore.getFileUrl(fileName, DATA_URL_TTL)
     } catch (error) {
       if (error.name === 'NotFound' || error.code === 'NotFound') {
         return ''
