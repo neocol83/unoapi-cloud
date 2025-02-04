@@ -107,27 +107,6 @@ const dataStoreFile = async (phone: string, config: Config): Promise<DataStore> 
         }
       }
     })
-    ev.on('messages.upsert', async ({ messages }: { messages: WAMessage[]; type: MessageUpsertType }) => {
-      for (const msg of messages) {
-        const { key } = msg
-        if (key.id) {
-          await dataStore.setKey(key.id, key)
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          await dataStore.setMessage(key.remoteJid!, msg)
-          if (isSaveMedia(msg)) {
-            await mediaStore.saveMedia(msg)
-          }
-        }
-      }
-    })
-    ev.on('messages.update', (updates: WAMessageUpdate[]) => {
-      for (const update of updates) {
-        const { key } = update
-        if (key.id) {
-          dataStore.setKey(key.id, key)
-        }
-      }
-    })
     ev.on('contacts.upsert', async (contacts: Contact[]) => {
       logger.debug('contacts.upsert %s', phone, JSON.stringify(contacts))
       const { saveProfilePicture } = mediaStore
