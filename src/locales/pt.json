@@ -1,0 +1,23 @@
+{
+  "without_whatsapp": "O número de telefone %s não tem whatsapp!",
+  "invalid_phone_number": "O número de telefone %s está inválido!",
+  "offline_session": "Sessão desligada, a conectar...",
+  "disconnected_session": "A sessão foi desligada, por favor leia o QR Code, se não existir um QR Code atualizado, envie uma mensagem para obter um novo.",
+  "connecting_session": "Aguarde um momento, a estabelecer a sessão...",
+  "invalid_link": "Houve um erro ao carregar o conteúdo, estado %s, link %s",
+	"attempts_exceeded": "O limite de %s vezes de geração de QR Code foi excedido!",
+	"received_pending_notifications": "A sincronizar mensagens enviadas enquanto estava offline",
+	"online_session": "Sessão estabelecida",
+	"connection_timed_out": "A sessão %s excedeu o tempo de %s ms, sessão alterada para estado Offline",
+	"connecting": "A estabelecer...",
+	"connected": "Sessão do número %s estabelecida, versão do WhatsApp v%s, a última versão do WhatsApp v%s, às %s",
+	"removed": "A sessão foi removida via aplicação WhatsApp, envie uma nova mensagem para gerar novo QR Code e voltar a estabelecer a ligação!",
+	"unique": "A sessão só pode ser estabelecida uma vez, a atual sessão está a ser desligada, envie uma mensagem para voltar a estabelecer a ligação!",
+	"closed": "A sessão foi encerrada com o estado: %s, detalhe: %s!",
+	"connecting_attemps": "Tentativa de estabelecimento de sessão %s de %s...",
+	"qrcode_attemps": "Por favor, leia QR Code para estabelecer a ligação, tentativa %s de %s",
+	"auto_restart": "Configurado para reiniciar a sessão a cada %s milliseconds.",
+	"failed_decrypt": "🕒 Não foi possível apresentar a mensagem. Peça para enviar novamente a mensagem ou abra a APP do Whatsapp para ver o conteúdo.",
+	"error": "Erro não previsto: %s.",
+	"on_read_qrcode": "Fantástico, se ainda não o fez, leia o QR Code. O token de authenticação para esta sessão é %s"
+}
