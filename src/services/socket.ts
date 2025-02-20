@@ -142,7 +142,7 @@ export const connect = async ({
 
   const onConnectionUpdate = async (event: Partial<ConnectionState>) => {
     logger.debug('onConnectionUpdate ==> %s %s', phone, JSON.stringify(event))
-    if (event.qr) {
+    if (event.qr && config.connectionType == 'qrcode') {
       if (status.attempt > attempts) {
         const message =  t('attempts_exceeded', attempts)
         logger.debug(message)
@@ -168,13 +168,13 @@ export const connect = async ({
       await sessionStore.setStatus(phone, 'online')
       await onNotification(t('online_session'), true)
     }
-
+    
     switch (event.connection) {
       case 'open':
         await onOpen()
         break
-
-      case 'close':
+        
+        case 'close':
         await onClose(event)
         break
 
@@ -198,6 +198,7 @@ export const connect = async ({
           logger.warn(message)
           await onDisconnected(phone, {})
         }
+        await sessionStore.syncConnection(phone)
       }, CONNECTING_TIMEOUT_MS)
     } else {
       connectingTimeout = null
@@ -238,7 +239,7 @@ export const connect = async ({
     logger.info(`${phone} disconnected with status: ${statusCode}`)
     if ([DisconnectReason.loggedOut, DisconnectReason.badSession, DisconnectReason.forbidden].includes(statusCode)) {
       status.attempt = 1
-      if (!(await sessionStore.isStatusConnecting(phone))) {
+      if (!await sessionStore.isStatusConnecting(phone)) {
         const message = t('removed')
         await onNotification(message, true)
       }
@@ -248,8 +249,10 @@ export const connect = async ({
       await close()
       const message = t('unique')
       return onNotification(message, true)
-    }
-    if (status.attempt == 1) {
+    } else if (statusCode === DisconnectReason.restartRequired) {
+      const message = t('restart')
+      await onNotification(message, true)
+    } else if (status.attempt == 1) {
       const detail = lastDisconnect?.error?.output?.payload?.error
       const message = t('closed', statusCode, detail)
       await onNotification(message, true)
@@ -437,6 +440,7 @@ export const connect = async ({
   }
 
   const connect = async () => {
+    await sessionStore.syncConnection(phone)
     if (await sessionStore.isStatusConnecting(phone)) {
       logger.warn('Already Connecting %s', phone)
       return
@@ -475,6 +479,7 @@ export const connect = async ({
       patchMessageBeforeSending,
       agent,
       fetchAgent,
+      qrTimeout: config.qrTimeoutMs,
     }
     if (config.connectionType == 'pairing_code') {
       socketConfig.printQRInTerminal = false
@@ -491,6 +496,7 @@ export const connect = async ({
       sock = makeWASocket(socketConfig)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
+      console.log(error, error.isBoom, !error.isServer)
       if (error && error.isBoom && !error.isServer) {
         await onClose({ lastDisconnect: { error } })
       } else {
@@ -502,6 +508,8 @@ export const connect = async ({
     }
     if (sock) {
       dataStore.bind(sock.ev)
+      event('creds.update', saveCreds)
+      logger.info('Connection type %s already creds %s', config.connectionType, sock?.authState?.creds?.registered)
       if (config.connectionType == 'pairing_code' && !sock?.authState?.creds?.registered) {
         logger.info(`Requesting pairing code ${phone}`)
         try {
@@ -511,13 +519,14 @@ export const connect = async ({
           const beatyCode = `${code?.match(/.{1,4}/g)?.join('-')}`
           const message = t('pairing_code', beatyCode)
           await onNotification(message, true)
+          event('connection.update', onConnectionUpdate)
         } catch (error) {
           console.error(error)
           throw error
         }
+      } else {
+        event('connection.update', onConnectionUpdate)
       }
-      event('creds.update', saveCreds)
-      event('connection.update', onConnectionUpdate)
       if (config.wavoipToken) {
         useVoiceCallsBaileys(config.wavoipToken, sock as any, 'close', true)
       }
