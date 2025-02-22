@@ -1,7 +1,7 @@
 import { MAX_CONNECT_RETRY } from '../defaults'
 import logger from './logger'
 
-export type sessionStatus = 'offline' | 'online' | 'disconnected' | 'connecting' | 'blocked'
+export type sessionStatus = 'offline' | 'online' | 'disconnected' | 'connecting' | 'blocked' | 'restart_required'
 
 const statuses: Map<string, string> = new Map<string, string>()
 const retries: Map<string, number> = new Map<string, number>()
@@ -35,25 +35,21 @@ export abstract class SessionStore {
     return await this.getStatus(phone) == 'disconnected'
   }
 
-  async isStatusBlocked(phone: string) {
-    return await this.getStatus(phone) == 'blocked'
+  async isStatusRestartRequired(phone: string) {
+    return await this.getStatus(phone) == 'restart_required'
   }
 
   async getConnectCount(phone: string) {
     return retries.get(phone) || 0
   }
 
-  async incrementConnectCountAndVerify(phone: string) {
-    const count = retries.get(phone) || 0
+  async incrementConnectCount(phone: string) {
+    const count = await this.getConnectCount(phone)
     retries.set(phone, count + 1)
-    if (retries.get(phone)! >= MAX_CONNECT_RETRY) {
-      this.setStatus(phone, 'blocked')
-      return true
-    }
   }
 
-  async isStatusBlockedAndVerify(phone: string) {
-    if (await this.isStatusBlocked(phone)) {
+  async isStatusBlocked(phone: string) {
+    if (await this.getStatus(phone) == 'blocked') {
       if (await this.getConnectCount(phone) < MAX_CONNECT_RETRY) {
         await this.setStatus(phone, 'offline')
         return false
@@ -61,7 +57,13 @@ export abstract class SessionStore {
       logger.warn('Blocked %s', phone)
       return true
     }
-    return this.incrementConnectCountAndVerify(phone)
+    const count = await this.getConnectCount(phone)
+    if (count >= MAX_CONNECT_RETRY) {
+      this.setStatus(phone, 'blocked')
+      return true
+    }
+    await this.incrementConnectCount(phone)
+    return false
   }
 
   async syncConnections() {}
