@@ -1,12 +1,12 @@
 import { proto, WAMessage, downloadMediaMessage, Contact } from 'baileys'
 import { getBinMessage, jidToPhoneNumberIfUser, toBuffer } from './transformer'
-import { UNOAPI_JOB_MEDIA, DATA_TTL, FETCH_TIMEOUT_MS, DATA_URL_TTL } from '../defaults'
+import { UNOAPI_QUEUE_MEDIA, DATA_TTL, FETCH_TIMEOUT_MS, DATA_URL_TTL, UNOAPI_EXCHANGE_BROKER_NAME } from '../defaults'
 import { mediaStores, MediaStore, getMediaStore } from './media_store'
 import { Response } from 'express'
 import { getDataStore } from './data_store'
 import { PutObjectCommand, GetObjectCommand, DeleteObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
-import { amqpEnqueue } from '../amqp'
+import { amqpPublish } from '../amqp'
 import type { Readable } from 'stream'
 import { STORAGE_OPTIONS } from '../defaults'
 import { mediaStoreFile } from './media_store_file'
@@ -64,7 +64,7 @@ export const mediaStoreS3 = (phone: string, config: Config, getDataStore: getDat
     const abortSignal = AbortSignal.timeout(s3Config.timeoutMs)
     await s3Client.send(new PutObjectCommand(putParams), { abortSignal })
     logger.debug(`Uploaded file ${fileName} to bucket ${bucket}!`)
-    await amqpEnqueue(UNOAPI_JOB_MEDIA, phone, { fileName: fileName }, { delay: DATA_TTL * 1000 })
+    await amqpPublish(UNOAPI_EXCHANGE_BROKER_NAME, UNOAPI_QUEUE_MEDIA, phone, { fileName: fileName }, { delay: DATA_TTL * 1000 })
     return true
   }
 

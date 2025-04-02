@@ -8,6 +8,7 @@ import injectRoute from './services/inject_route'
 import injectRouteDummy from './services/inject_route_dummy'
 import { indexController } from './controllers/index_controller'
 import { WebhookController } from './controllers/webhook_controller'
+import { WebhookFakeController } from './controllers/webhook_fake_controller'
 import { ContactsController } from './controllers/contacts_controller'
 import { TemplatesController } from './controllers/templates_controller'
 import { MessagesController } from './controllers/messages_controller'
@@ -49,10 +50,19 @@ export const router = (
   const registrationController = new RegistrationController(getConfig, reload, logout)
   const phoneNumberController = new PhoneNumberController(getConfig, sessionStore)
   const sessionController = new SessionController(getConfig, onNewLogin, socket)
-  const webhookController = new WebhookController()
+  const webhookController = new WebhookController(outgoing, getConfig)
   const blacklistController = new BlacklistController(addToBlacklist)
   const contactsController = new ContactsController(contact)
   const pairingCodeController = new PairingCodeController(getConfig, incoming)
+
+
+  // Webhook for forward connection
+  router.post('/webhooks/whatsapp/:phone', webhookController.whatsapp.bind(webhookController))
+  router.get('/webhooks/whatsapp/:phone', middleware, webhookController.whatsappVerify.bind(webhookController))
+
+  // for default webhook
+  const webhookFakeController = new WebhookFakeController()
+  router.post('/webhooks/fake/:phone', webhookFakeController.fake.bind(webhookFakeController))
 
   //Routes
   router.get('/', indexController.root)
@@ -79,7 +89,5 @@ export const router = (
 
   injectRoute(router)
 
-  // Webhook for tests
-  router.post('/webhooks/whatsapp/:phone', webhookController.whatsapp)
   return router
 }

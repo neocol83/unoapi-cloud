@@ -28,6 +28,7 @@ import { Template } from './template'
 import logger from './logger'
 import { FETCH_TIMEOUT_MS, VALIDATE_MEDIA_LINK_BEFORE_SEND } from '../defaults'
 import { t } from '../i18n'
+import { ClientForward } from './client_forward'
 const attempts = 3
 
 interface Delay {
@@ -49,14 +50,21 @@ export const getClientBaileys: getClient = async ({
 }): Promise<Client> => {
   if (!clients.has(phone)) {
     logger.info('Creating client baileys %s', phone)
-    const client = new ClientBaileys(phone, listener, getConfig, onNewLogin)
     const config = await getConfig(phone)
-    if (config.autoConnect) {
-      logger.info('Connecting client baileys %s', phone)
-      await client.connect(1)
-      logger.info('Created and connected client baileys %s', phone)
+    let client
+    if (config.connectionType == 'forward') {
+      logger.info('Connecting client forward %s', phone)
+      client = new ClientForward(phone, getConfig, listener)
     } else {
-      logger.info('Config client baileys to not auto connect %s', phone)
+      logger.info('Connecting client baileys %s', phone)
+      client = new ClientBaileys(phone, listener, getConfig, onNewLogin)
+    }
+    if (config.autoConnect) {
+      logger.info('Connecting client %s', phone)
+      await client.connect(1)
+      logger.info('Created and connected client %s', phone)
+    } else {
+      logger.info('Config client to not auto connect %s', phone)
     }
     clients.set(phone, client)
   } else {
@@ -65,12 +73,7 @@ export const getClientBaileys: getClient = async ({
   return clients.get(phone) as Client
 }
 
-const sendError = new SendError(3, t('disconnected_session'))
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const sendMessageDefault: sendMessage = async (_phone: string, _message: AnyMessageContent, _options: unknown) => {
-  throw sendError
-}
+const sendError = new SendError(15, t('reloaded_session'))
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const readMessagesDefault: readMessages = async (_keys) => {
@@ -101,10 +104,25 @@ const logoutDefault: logout = async () => {}
 const closeDefault = async () => logger.info(`Close connection`)
 
 export class ClientBaileys implements Client {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  readonly sendMessageDefault: sendMessage = async (_phone: string, _message: AnyMessageContent, _options: unknown) => {
+    const sessionStore = this?.phone && await (await this?.config?.getStore(this.phone, this.config)).sessionStore
+    if (sessionStore) {
+      if (!await sessionStore.isStatusConnecting(this.phone)) {
+        clients.delete(this.phone)
+      }
+      if (await sessionStore.isStatusOnline(this.phone)) {
+        await sessionStore.setStatus(this.phone, 'offline')
+        clients.delete(this.phone)
+      }
+    }
+    throw sendError
+  }
+
   private phone: string
   private config: Config = defaultConfig
   private close: close = closeDefault
-  private sendMessage = sendMessageDefault
+  private sendMessage = this.sendMessageDefault
   private event
   private fetchImageUrl = fetchImageUrlDefault
   private exists = existsDefault
@@ -122,9 +140,10 @@ export class ClientBaileys implements Client {
   private onWebhookError = async (error: any) => {
     const { sessionStore } = this.store!
     if (!this.config.throwWebhookError && error.name === 'FetchError' && (await sessionStore.isStatusOnline(this.phone))) {
-      return this.send(
+      return this.sendMessage(
         phoneNumberToJid(this.phone),
-        { text: `Error on send message to webhook: ${error.message}`}
+        { text: `Error on send message to webhook: ${error.message}`},
+        {}
       )
     }
     if (this.config.throwWebhookError) {
@@ -289,7 +308,7 @@ export class ClientBaileys implements Client {
     await this.close()
     clients.delete(this?.phone)
     configs.delete(this?.phone)
-    this.sendMessage = sendMessageDefault
+    this.sendMessage = this.sendMessageDefault
     this.readMessages = readMessagesDefault
     this.rejectCall = rejectCallDefault
     this.fetchImageUrl = fetchImageUrlDefault
@@ -305,18 +324,14 @@ export class ClientBaileys implements Client {
     this.event('messages.upsert', async (payload: { messages: []; type }) => {
       logger.debug('messages.upsert %s', this.phone, JSON.stringify(payload))
       await this.listener.process(this.phone, payload.messages, payload.type)
-      console.log('>>>>>>>>>> readOnReceipt 1')
       if (this.config.readOnReceipt) {
-        console.log('>>>>>>>>>> readOnReceipt 2')
         await Promise.all(
           payload.messages
             .filter((message: any) => {
-              console.log('>>>>>>>>>> readOnReceipt 3')
               const messageType = getMessageType(message)
               return !message?.key?.fromMe && messageType && TYPE_MESSAGES_TO_READ.includes(messageType)
             })
             .map(async (message: any) => {
-              console.log('>>>>>>>>>> readOnReceipt 2')
               return this.readMessages([message.key!])
             })
         )
@@ -350,7 +365,7 @@ export class ClientBaileys implements Client {
           this.calls.set(from, true)
           if (this.config.rejectCalls && this.rejectCall) {
             await this.rejectCall(id, from)
-            await this.send(from, { text: this.config.rejectCalls });
+            await this.sendMessage(from, { text: this.config.rejectCalls }, {});
             logger.info('Rejecting calls %s %s', this.phone, this.config.rejectCalls)
           }
           const messageCallsWebhook = this.config.rejectCallsWebhook || this.config.messageCallsWebhook

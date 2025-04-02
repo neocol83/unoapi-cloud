@@ -257,10 +257,6 @@
                                 <input type="text" class="form-control" id="rejectCallsWebhook" name="rejectCallsWebhook" placeholder="Estava te ligando...">
                             </div>
                             <div class="col-12 col-md-12 col-lg-6">
-                                <label for="rejectCalls" class="form-label">Mensagem ao Rejeitar Chamadas</label>
-                                <input type="text" class="form-control" id="rejectCalls" name="rejectCalls" placeholder="Deixe em Branco para não Rejeitar ligações automaticamente">
-                            </div>
-                            <div class="col-12 col-md-12 col-lg-6">
                               <label for="connectionType" class="form-label">Tipo de Conexão</label>
                               <select id="connectionType" name="connectionType" class="form-control">
                                 <option value="qrcode" selected>QrCode</option>
@@ -271,6 +267,14 @@
                                 <label for="proxyUrl" class="form-label">Proxy Url (Precisa Reiniciar a Unoapi ao Alterar)</label>
                                 <input type="text" class="form-control" id="proxyUrl" name="proxyUrl" placeholder="Ex: socks5://user:pass@ip/domain:port">
                             </div>
+                            <div class="col-12 col-md-12 col-lg-6">
+                              <label for="rejectCalls" class="form-label">Mensagem ao Rejeitar Chamadas</label>
+                              <textarea class="form-control" id="rejectCalls" name="rejectCalls" placeholder="Deixe em Branco para não Rejeitar ligações automaticamente" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'"></textarea>
+                            </div>
+                            <div class="col-12 col-md-12 col-lg-6">
+                                <label for="server" class="form-label">Server</label>
+                                <input type="text" class="form-control" id="server" name="server" placeholder="Ex: default is server_1">
+                            </div>
                         </div>
                         <div class="row edit-form-row">
                             <div class="col-12 col-md-6 col-lg-6 col-xl-4 col-xxl-3">
@@ -279,6 +283,13 @@
                                     <span class="slider round"></span>
                                 </label>
                                 <label for="ignoreGroupMessages" class="form-label">Ignorar Mensagens de Grupo</label>
+                            </div>
+                            <div class="col-12 col-md-6 col-lg-6 col-xl-4 col-xxl-3">
+                                <label class="switch">
+                                    <input type="checkbox" id="ignoreNewsletterMessages" name="ignoreNewsletterMessages" checked>
+                                    <span class="slider round"></span>
+                                </label>
+                                <label for="ignoreNewsletterMessages" class="form-label">Ignorar Mensagens de Newsletter</label>
                             </div>
                             <div class="col-12 col-md-6 col-lg-6 col-xl-4 col-xxl-3">
                                 <label class="switch">
@@ -386,6 +397,21 @@
                                     <input type="checkbox" class="webhook-sendGroupMessages">
                                     <span class="slider round"></span>
                                 </label>
+                                <label for="sendNewsletterMessages" class="form-label">Enviar Mensagens de Newsletter</label>
+                                <label class="switch">
+                                    <input type="checkbox" class="webhook-sendNewsletterMessages">
+                                    <span class="slider round"></span>
+                                </label>
+                                <label for="sendOutgoingMessages" class="form-label">Enviar Mensagens de Saída</label>
+                                <label class="switch">
+                                    <input type="checkbox" class="webhook-sendOutgoingMessages">
+                                    <span class="slider round"></span>
+                                </label>
+                                <label for="sendUpdateMessages" class="form-label">Enviar Atualização de Mensagens</label>
+                                <label class="switch">
+                                    <input type="checkbox" class="webhook-sendUpdateMessages">
+                                    <span class="slider round"></span>
+                                </label>
                                 <button type="button" class="btn btn-danger btn-sm mt-2 remove-webhook">Remover</button>
                             </div>
                         </div>
@@ -469,6 +495,21 @@
                         <label for="sendGroupMessages" class="form-label">Enviar Mensagens de Grupos</label>
                         <label class="switch">
                             <input type="checkbox" class="webhook-sendGroupMessages">
+                            <span class="slider round"></span>
+                        </label>
+                        <label for="sendNewsletterMessages" class="form-label">Enviar Mensagens de Newsletter</label>
+                        <label class="switch">
+                            <input type="checkbox" class="webhook-sendNewsletterMessages">
+                            <span class="slider round"></span>
+                        </label>
+                        <label for="sendOutgoingMessages" class="form-label">Enviar Mensagens de Saída</label>
+                        <label class="switch">
+                            <input type="checkbox" class="webhook-sendOutgoingMessages">
+                            <span class="slider round"></span>
+                        </label>
+                        <label for="sendUpdateMessages" class="form-label">Enviar Atualização de Mensagens</label>
+                        <label class="switch">
+                            <input type="checkbox" class="webhook-sendUpdateMessages">
                             <span class="slider round"></span>
                         </label>
                         <button type="button" class="btn btn-danger btn-sm mt-2 remove-webhook">Remover</button>
@@ -620,6 +661,7 @@
                 $('#rejectCallsWebhook').val(session.rejectCallsWebhook);
                 $('#rejectCalls').val(session.rejectCalls);
                 $('#ignoreGroupMessages').prop('checked', session.ignoreGroupMessages);
+                $('#ignoreNewsletterMessages').prop('checked', session.ignoreNewsletterMessages);
                 $('#ignoreHistoryMessages').prop('checked', session.ignoreHistoryMessages);
                 $('#readOnReceipt').prop('checked', session.readOnReceipt);
                 $('#sendProfilePicture').prop('checked', session.sendProfilePicture);
@@ -634,6 +676,7 @@
                 $('#ignoreBroadcastMessages').prop('checked', session.ignoreBroadcastMessages);
                 $('#connectionType').val(session.connectionType);
                 $('#proxyUrl').val(session.proxyUrl);
+                $('#server').val(session.server);
 
                 // Limpar webhooks existentes no formulário de edição
                 $('#webhooksContainer .webhook').remove();
@@ -660,6 +703,21 @@
                                     <input type="checkbox" class="webhook-sendGroupMessages" ${webhook.sendGroupMessages ? 'checked' : ''}>
                                     <span class="slider round"></span>
                                 </label>
+                                <label for="sendNewsletterMessages" class="form-label">Enviar Mensagens de Newsletter</label>
+                                <label class="switch">
+                                    <input type="checkbox" class="webhook-sendNewsletterMessages" ${webhook.sendNewsletterMessages ? 'checked' : ''}>
+                                    <span class="slider round"></span>
+                                </label>
+                                <label for="sendOutgoingMessages" class="form-label">Enviar Mensagens de Saída</label>
+                                <label class="switch">
+                                    <input type="checkbox" class="webhook-sendOutgoingMessages" ${webhook.sendOutgoingMessages ? 'checked' : ''}>
+                                    <span class="slider round"></span>
+                                </label>
+                                <label for="sendUpdateMessages" class="form-label">Enviar Atualização de Mensagens</label>
+                                <label class="switch">
+                                    <input type="checkbox" class="webhook-sendUpdateMessages" ${webhook.sendUpdateMessages ? 'checked' : ''}>
+                                    <span class="slider round"></span>
+                                </label>
                                 <button type="button" class="btn btn-danger btn-sm mt-2 remove-webhook">Remover</button>
                             </div>`;
                         $('#webhooksContainer').append(webhookTemplate);
@@ -679,6 +737,7 @@
                         rejectCalls: $('#rejectCalls').val(),
                         rejectCallsWebhook: $('#rejectCallsWebhook').val(),
                         ignoreGroupMessages: $('#ignoreGroupMessages').is(':checked'),
+                        ignoreNewsletterMessages: $('#ignoreNewsletterMessages').is(':checked'),
                         ignoreHistoryMessages: $('#ignoreHistoryMessages').is(':checked'),
                         readOnReceipt: $('#readOnReceipt').is(':checked'),
                         sendProfilePicture: $('#sendProfilePicture').is(':checked'),
@@ -693,6 +752,7 @@
                         ignoreBroadcastMessages: $('#ignoreBroadcastMessages').is(':checked'),
                         connectionType: $('#connectionType').val(),
                         proxyUrl: $('#proxyUrl').val(),
+                        server: $('#server').val(),
                         webhooks: []
                     };
 
@@ -703,7 +763,10 @@
                             token: $(this).find('.webhook-token').val(),
                             header: $(this).find('.webhook-header').val(),
                             sendNewMessages: $(this).find('.webhook-sendNewMessages').is(':checked'),
-                            sendGroupMessages: $(this).find('.webhook-sendGroupMessages').is(':checked')
+                            sendGroupMessages: $(this).find('.webhook-sendGroupMessages').is(':checked'),
+                            sendNewsletterMessages: $(this).find('.webhook-sendNewsletterMessages').is(':checked'),
+                            sendOutgoingMessages: $(this).find('.webhook-sendOutgoingMessages').is(':checked'),
+                            sendUpdateMessages: $(this).find('.webhook-sendUpdateMessages').is(':checked'),
                         };
                         sessionData.webhooks.push(webhook);
                     });
