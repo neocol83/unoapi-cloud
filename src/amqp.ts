@@ -188,6 +188,17 @@ export const amqpGetQueue = async (
   return queues.get(queue)!
 }
 
+
+const getExchangeType = (exchange): ExchagenType => {
+  if (UNOAPI_EXCHANGE_BRIDGE_NAME == exchange) {
+    return 'direct'
+  } else if (UNOAPI_EXCHANGE_BROKER_NAME == exchange) {
+    return 'topic'
+  } else {
+    throw `Unknow exchange ${exchange}`
+  }
+}
+
 export const amqpPublish = async (
   exchange: string,
   queue: string,
@@ -198,12 +209,13 @@ export const amqpPublish = async (
     dead: false,
     maxRetries: UNOAPI_MESSAGE_RETRY_LIMIT,
     countRetries: 0,
-    priority: 0,
-    type: 'topic'
+    priority: 0
   },
 ) => {
   validateRoutingKey(routingKey)
   const channel = await amqpGetChannel()
+  options.type = options.type || getExchangeType(exchange)
+  logger.debug('Publishing at exchange: %s, with queue: %s, routing key: %s and type: %s', exchange, queue, routingKey, options.type)
   await amqpGetExchange(exchange, options.type!, options.prefetch!)
   const { queueMain, queueDead, queueDelayed } = await amqpGetQueue(exchange, queue, routingKey, options)
   const { delay, dead, maxRetries, countRetries } = options
@@ -247,10 +259,10 @@ export const amqpConsume = async (
   options: Partial<CreateOption> = {
     delay: UNOAPI_MESSAGE_RETRY_DELAY, 
     priority: 0,
-    notifyFailedMessages: NOTIFY_FAILED_MESSAGES,
-    type: 'topic'
+    notifyFailedMessages: NOTIFY_FAILED_MESSAGES
   },
 ) => {
+  logger.debug('Configurate to consume exchange: %s, queue: %s, routing key: %s and type: %s', exchange, queue, routingKey, options.type)
   validateRoutingKey(routingKey)
   await amqpGetExchange(exchange, options.type!, options.prefetch!)
   const channel = await amqpGetChannel()
@@ -295,14 +307,14 @@ export const amqpConsume = async (
                 },
               },
             },
-            { maxRetries: 0 },
+            { maxRetries: 0, type: 'topic' },
           )
           logger.info('Sent error to whatsapp!')
         }
-        await amqpPublish(exchange, queue, routingKey, data, { dead: true })
+        await amqpPublish(exchange, queue, routingKey, data, { dead: true, type: options.type })
       } else {
         logger.info('Publish retry %s of %s', countRetries, maxRetries)
-        await amqpPublish(exchange, queue, routingKey, data, { delay: 60000, maxRetries, countRetries })
+        await amqpPublish(exchange, queue, routingKey, data, { delay: 60000, maxRetries, countRetries, type: options.type })
       }
       await channel.ack(payload)
     }

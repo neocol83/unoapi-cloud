@@ -89,11 +89,10 @@ export class OutgoingJob {
         } else {
           payload.entry[0].changes[0].value.messages = await Promise.all(
             payload.entry[0].changes[0].value.messages.map(async message => {
-              // const currentId = message.id
-              // const unoId = await dataStore.loadUnoId(currentId)
-              // if (unoId) {
-              //   message.id = unoId
-              // }
+              if (['image', 'audio', 'document', 'video'].includes(message.type)) {
+                const { mediaStore } = store
+                message = await mediaStore.saveMediaForwarder(message)
+              }
               if (message.context && message.context.id) {
                 const unoId = await dataStore.loadUnoId(message.context.id)
                 if (unoId) {
